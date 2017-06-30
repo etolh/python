@@ -3,21 +3,38 @@ from flask_script import Manager    #flask扩展：使用命令行选项
 from flask.ext.bootstrap import Bootstrap 
 from flask.ext.moment import Moment  #本地化时间
 from datetime import datetime
+from flask.ext.wtf import Form
+from wtforms import StringField, SubmitField
+from wtforms.validators import Required
 
 app = Flask(__name__)
+#defend csrf
+app.config['SECRET_KEY'] = 'hard to guess string'
 
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 
+#定义表单类
+class NameForm(Form):
+    name = StringField('What is your name?', validators=[Required()])
+    submit = SubmitField('Submit')
 
 #app.route完成url映射的路由绑定：
 #当输入该url时，app程序对象会自动寻找对应的函数处理url请求
-@app.route('/')
+#4a:methods注册get、post请求的处理程序，未指定，默认为get
+@app.route('/',methods=['GET','POST'])
 def index():
     # return '<h1>Hello World!</h1>'
     #使用jinja2模板
-    return render_template('index.html', current_time=datetime.utcnow())
+    #渲染表单，并接收表单数据4a
+    name = None
+    form = NameForm()
+
+    if form.validate_on_submit():
+        name = form.name.data
+        form.name.data = ''
+    return render_template('index.html', form=form,name=name,current_time=datetime.utcnow())
 
 #url动态部分可以用<>修饰，再传入绑定的视图函数
 @app.route('/user/<name>')
