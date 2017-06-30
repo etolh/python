@@ -6,7 +6,7 @@ from datetime import datetime
 from flask.ext.wtf import Form
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
-from flask import Flask, render_template, session, redirect, url_for #4b,重定向
+from flask import Flask, render_template, session, redirect, url_for, flash #4b,重定向
 
 app = Flask(__name__)
 #defend csrf
@@ -29,11 +29,15 @@ def index():
     # return '<h1>Hello World!</h1>'
     #使用jinja2模板
     #渲染表单，并接收表单数据4a
-    name = None
     form = NameForm()
 
     if form.validate_on_submit():
         #若有表单提交，返回True
+        old_name = session.get('name')
+
+        if old_name is not None and old_name != form.name.data:
+            flash('Looks like you have changed your name')
+            
         session['name'] = form.name.data    #session保存数据
         return redirect(url_for('index'))
     #form表单渲染index网页
