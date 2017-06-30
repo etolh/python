@@ -1,5 +1,10 @@
 from flask import Flask
+from flask_script import Manager    #flask扩展：使用命令行选项
+
 app = Flask(__name__)
+
+manager = Manager(app)
+
 
 #app.route完成url映射的路由绑定：
 #当输入该url时，app程序对象会自动寻找对应的函数处理url请求
@@ -13,4 +18,5 @@ def user(name):
     return '<h1>Hello %s!</h1>' % name
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    #app.run(debug=True)
+    manager.run()
