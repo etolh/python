@@ -1,9 +1,12 @@
 from flask import Flask,render_template
 from flask_script import Manager    #flask扩展：使用命令行选项
+from flask.ext.bootstrap import Bootstrap
+
 
 app = Flask(__name__)
 
 manager = Manager(app)
+bootstrap = Bootstrap(app)
 
 
 #app.route完成url映射的路由绑定：
