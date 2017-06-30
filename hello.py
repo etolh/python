@@ -6,6 +6,7 @@ from datetime import datetime
 from flask.ext.wtf import Form
 from wtforms import StringField, SubmitField
 from wtforms.validators import Required
+from flask import Flask, render_template, session, redirect, url_for #4b,重定向
 
 app = Flask(__name__)
 #defend csrf
@@ -32,9 +33,11 @@ def index():
     form = NameForm()
 
     if form.validate_on_submit():
-        name = form.name.data
-        form.name.data = ''
-    return render_template('index.html', form=form,name=name,current_time=datetime.utcnow())
+        #若有表单提交，返回True
+        session['name'] = form.name.data    #session保存数据
+        return redirect(url_for('index'))
+    #form表单渲染index网页
+    return render_template('index.html', form=form,name=session.get('name'),current_time=datetime.utcnow())
 
 #url动态部分可以用<>修饰，再传入绑定的视图函数
 @app.route('/user/<name>')
