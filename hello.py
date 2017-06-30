@@ -1,12 +1,14 @@
 from flask import Flask,render_template
 from flask_script import Manager    #flask扩展：使用命令行选项
-from flask.ext.bootstrap import Bootstrap
-
+from flask.ext.bootstrap import Bootstrap 
+from flask.ext.moment import Moment  #本地化时间
+from datetime import datetime
 
 app = Flask(__name__)
 
 manager = Manager(app)
 bootstrap = Bootstrap(app)
+moment = Moment(app)
 
 
 #app.route完成url映射的路由绑定：
@@ -15,7 +17,7 @@ bootstrap = Bootstrap(app)
 def index():
     # return '<h1>Hello World!</h1>'
     #使用jinja2模板
-    return render_template('index.html')
+    return render_template('index.html', current_time=datetime.utcnow())
 
 #url动态部分可以用<>修饰，再传入绑定的视图函数
 @app.route('/user/<name>')
