@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask,render_template
 from flask_script import Manager    #flask扩展：使用命令行选项
 
 app = Flask(__name__)
@@ -10,12 +10,15 @@ manager = Manager(app)
 #当输入该url时，app程序对象会自动寻找对应的函数处理url请求
 @app.route('/')
 def index():
-    return '<h1>Hello World!</h1>'
+    # return '<h1>Hello World!</h1>'
+    #使用jinja2模板
+    return render_template('index.html')
 
 #url动态部分可以用<>修饰，再传入绑定的视图函数
 @app.route('/user/<name>')
 def user(name):
-    return '<h1>Hello %s!</h1>' % name
+    # return '<h1>Hello %s!</h1>' % name
+    return render_template('user.html',name=name)
 
 if __name__ == '__main__':
     #app.run(debug=True)
