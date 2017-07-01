@@ -29,20 +29,17 @@ moment = Moment(app)
 
 #定义数据库表对应的模型:extends db.Model
 class Role(db.Model):
-    """docstring for Role"""
     __tablename__ = 'role'
     id = db.Column(db.Integer,primary_key=True)
     name = db.Column(db.String(64),unique=True)
 
-    #one2many-relations:one,backref与__tablename__对应
-    users = db.relationship('User', backref='role')
+    #one2many-relations:one,backref与__tablename__对应,lazy='dynamic'禁止自动
+    users = db.relationship('User', backref='role',lazy='dynamic')
 
-    ''' return string '''
     def __repr__(self):
         return '<Role %r>' % self.name
 
 class User(db.Model):
-    """docstring for User"""
     __tablename__ = 'User'
     id = db.Column(db.Integer,primary_key=True)
     name = db.Column(db.String(50),unique=True)
@@ -50,7 +47,6 @@ class User(db.Model):
     #one2many-relations:many,ForeignKey与__tablename__对应
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
 
-    ''' return string '''
     def __repr__(self):
         return '<User %r>' % self.name
 
@@ -63,25 +59,32 @@ class NameForm(Form):
 
 #app.route完成url映射的路由绑定：
 #当输入该url时，app程序对象会自动寻找对应的函数处理url请求
-#4a:methods注册get、post请求的处理程序，未指定，默认为get
 @app.route('/',methods=['GET','POST'])
 def index():
-    # return '<h1>Hello World!</h1>'
-    #使用jinja2模板
-    #渲染表单，并接收表单数据4a
+    
     form = NameForm()
-
     if form.validate_on_submit():
-        #若有表单提交，返回True
-        old_name = session.get('name')
 
-        if old_name is not None and old_name != form.name.data:
-            flash('Looks like you have changed your name')
-            
-        session['name'] = form.name.data    #session保存数据
+        #存在提交，与数据库交互
+        name = form.name.data
+        user = User.query.filter_by(name=name).first()
+
+        if user is None:
+            #未在DB中找到，添加进db
+            user = User(name=name)
+            db.session.add(user)
+            session['known'] = False
+        else:
+            #设为TRUE
+            session['known'] = True
+
+        session['name'] = name
+        form.name.data = '' #清空
+
         return redirect(url_for('index'))
-    #form表单渲染index网页
-    return render_template('index.html', form=form,name=session.get('name'),current_time=datetime.utcnow())
+
+    return render_template('index.html', form=form,name=session.get('name'),known=session.get('known',False),current_time=datetime.utcnow())
+
 
 #url动态部分可以用<>修饰，再传入绑定的视图函数
 @app.route('/user/<name>')
