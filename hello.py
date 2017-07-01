@@ -1,3 +1,4 @@
+import os
 from flask import Flask,render_template
 from flask_script import Manager    #flask扩展：使用命令行选项
 from flask.ext.bootstrap import Bootstrap 
@@ -10,6 +11,7 @@ from flask import Flask, render_template, session, redirect, url_for, flash #4b,
 from flask_sqlalchemy import SQLAlchemy
 from flask.ext.script import Shell
 from flask.ext.migrate import Migrate,MigrateCommand
+from flask.ext.mail import Mail,Message
 
 app = Flask(__name__)
 
@@ -19,6 +21,19 @@ app.config['SECRET_KEY'] = 'hard to guess string'
 app.config['SQLALCHEMY_DATABASE_URI'] = \
 'mysql://root:4854264@localhost:3306/web'
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+#mail
+app.config['MAIL_SERVER'] = 'smtp.qq.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USE_TLS'] = False
+#get from environment
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+
+app.config['FLASKY_MAIL_SUBJECT_PREFIX'] = '[Flasky]'
+app.config['FLASKY_MAIL_SENDER'] = '2137243608@qq.com'
+app.config['FLASKY_TO'] = os.environ.get('FLASKY_TO')
+
 
 #db refers to database
 db = SQLAlchemy(app)
@@ -26,6 +41,7 @@ manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
 migrate = Migrate(app, db)
+mail = Mail(app)
 
 #定义数据库表对应的模型:extends db.Model
 class Role(db.Model):
@@ -50,6 +66,12 @@ class User(db.Model):
     def __repr__(self):
         return '<User %r>' % self.name
 
+def send_mail(to,subject,template,**kwargs):
+    msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + subject, 
+        sender=app.config['FLASKY_MAIL_SENDER'],recipients=[to])
+    msg.body = render_template(template+'.txt', **kwargs)
+    msg.html = render_template(template+'.html',**kwargs)
+    mail.send(msg)
 
 #定义表单类
 class NameForm(Form):
@@ -72,15 +94,18 @@ def index():
     form = NameForm()
     if form.validate_on_submit():
 
-        #存在提交，与数据库交互
         name = form.name.data
         user = User.query.filter_by(name=name).first()
 
         if user is None:
-            #未在DB中找到，添加进db
             user = User(name=name)
             db.session.add(user)
             session['known'] = False
+
+            #每新加入一个用户，向管理员发送邮件
+            if app.config['FLASKY_TO']:
+                send_mail(app.config['FLASKY_TO'],'New User','mail/new_user',user=user)
+
         else:
             #设为TRUE
             session['known'] = True
