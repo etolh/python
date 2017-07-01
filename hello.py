@@ -13,20 +13,19 @@ from flask.ext.migrate import Migrate,MigrateCommand
 
 app = Flask(__name__)
 
+#defend csrf
+app.config['SECRET_KEY'] = 'hard to guess string'
 #config mysql
 app.config['SQLALCHEMY_DATABASE_URI'] = \
 'mysql://root:4854264@localhost:3306/web'
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+
 #db refers to database
 db = SQLAlchemy(app)
-
-#defend csrf
-app.config['SECRET_KEY'] = 'hard to guess string'
-
-
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment = Moment(app)
+migrate = Migrate(app, db)
 
 #定义数据库表对应的模型:extends db.Model
 class Role(db.Model):
@@ -61,10 +60,7 @@ class NameForm(Form):
 def make_shell_context():
     return dict(app=app,db=db,User=User,Role=Role)
 
-manager.add_command("shell",Shell(make_context=make_shell_context))
-
-
-migrate = Migrate(app, db)
+manager.add_command("shell", Shell(make_context=make_shell_context))
 manager.add_command('db', MigrateCommand)
 
 
