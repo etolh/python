@@ -1,5 +1,5 @@
 from threading import Thread
-from flask import render_template
+from flask import render_template,current_app
 from flask.ext.mail import Mail,Message
 from . import mail
 
@@ -8,6 +8,8 @@ def send_async_email(app,msg):
         mail.send(msg)
 
 def send_mail(to,subject,template,**kwargs):
+    #由于不在同一python文件中,使用current_app获取当前app
+    app = current_app._get_current_object()
     msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + subject, 
         sender=app.config['FLASKY_MAIL_SENDER'],recipients=[to])
     msg.body = render_template(template+'.txt', **kwargs)

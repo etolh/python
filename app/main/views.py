@@ -1,9 +1,10 @@
 from datetime import datetime
-from flask import render_template, session, redirect, url_for
+from flask import render_template, session, redirect, url_for,current_app
 from . import main
 from .forms import NameForm
 from .. import db
 from ..models import User
+from ..email import send_mail
 
 
 @main.route('/',methods=['GET','POST'])
@@ -21,8 +22,8 @@ def index():
             session['known'] = False
 
             #每新加入一个用户，向管理员发送邮件
-            if app.config['FLASKY_TO']:
-                send_mail(app.config['FLASKY_TO'],'New User','mail/new_user',user=user)
+            if current_app.config['FLASKY_TO']:
+                send_mail(current_app.config['FLASKY_TO'],'New User','mail/new_user',user=user)
 
         else:
             #设为TRUE

@@ -16,7 +16,7 @@ user_david = User(name='david',role=user_role)
 print(admin_role.id)    #None
 
 #添加到会话
-db.session.add(admin_role)
+db.session.add(admin_role)  
 db.session.add(mod_role)
 db.session.add(user_role)
 db.session.add(user_john)
