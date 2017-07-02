@@ -1,5 +1,4 @@
-import os
-from flask import Flask,render_template
+# import os
 from flask_script import Manager    #flask扩展：使用命令行选项
 from flask.ext.bootstrap import Bootstrap 
 from flask.ext.moment import Moment  #本地化时间
@@ -44,41 +43,41 @@ moment = Moment(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
 
-#定义数据库表对应的模型:extends db.Model
-class Role(db.Model):
-    __tablename__ = 'role'
-    id = db.Column(db.Integer,primary_key=True)
-    name = db.Column(db.String(64),unique=True)
+# #定义数据库表对应的模型:extends db.Model
+# class Role(db.Model):
+#     __tablename__ = 'role'
+#     id = db.Column(db.Integer,primary_key=True)
+#     name = db.Column(db.String(64),unique=True)
 
-    #one2many-relations:one,backref与__tablename__对应,lazy='dynamic'禁止自动
-    users = db.relationship('User', backref='role',lazy='dynamic')
+#     #one2many-relations:one,backref与__tablename__对应,lazy='dynamic'禁止自动
+#     users = db.relationship('User', backref='role',lazy='dynamic')
 
-    def __repr__(self):
-        return '<Role %r>' % self.name
+#     def __repr__(self):
+#         return '<Role %r>' % self.name
 
-class User(db.Model):
-    __tablename__ = 'User'
-    id = db.Column(db.Integer,primary_key=True)
-    name = db.Column(db.String(50),unique=True)
+# class User(db.Model):
+#     __tablename__ = 'User'
+#     id = db.Column(db.Integer,primary_key=True)
+#     name = db.Column(db.String(50),unique=True)
 
-    #one2many-relations:many,ForeignKey与__tablename__对应
-    role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
+#     #one2many-relations:many,ForeignKey与__tablename__对应
+#     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
 
-    def __repr__(self):
-        return '<User %r>' % self.name
+#     def __repr__(self):
+#         return '<User %r>' % self.name
 
-def send_async_email(app,msg):
-    with app.app_context():
-        mail.send(msg)
+# def send_async_email(app,msg):
+#     with app.app_context():
+#         mail.send(msg)
 
-def send_mail(to,subject,template,**kwargs):
-    msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + subject, 
-        sender=app.config['FLASKY_MAIL_SENDER'],recipients=[to])
-    msg.body = render_template(template+'.txt', **kwargs)
-    msg.html = render_template(template+'.html',**kwargs)
-    thr = Thread(target=send_async_email,args=[app, msg])
-    thr.start()
-    return thr
+# def send_mail(to,subject,template,**kwargs):
+#     msg = Message(app.config['FLASKY_MAIL_SUBJECT_PREFIX'] + subject, 
+#         sender=app.config['FLASKY_MAIL_SENDER'],recipients=[to])
+#     msg.body = render_template(template+'.txt', **kwargs)
+#     msg.html = render_template(template+'.html',**kwargs)
+#     thr = Thread(target=send_async_email,args=[app, msg])
+#     thr.start()
+#     return thr
 
 #定义表单类
 class NameForm(Form):
