@@ -49,7 +49,7 @@ def register():
         
         return redirect(url_for('auth.login'))
 
-    return render_template('auth/register.html',form=form,current_time=datetime.utcnow())
+    return render_template('auth/register.html',form=form)
 
 
 @auth.route('/confirm/<token>')
@@ -68,6 +68,7 @@ def confirm(token):
 
 @auth.before_app_request
 def before_request():
+    #用户在线但处于未激活状态
     if current_user.is_authenticated \
             and not current_user.confirmed \
             and request.endpoint \
