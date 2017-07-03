@@ -1,5 +1,11 @@
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask.ext.login import UserMixin
+from . import login_manager
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 #定义数据库表对应的模型:extends db.Model
 class Role(db.Model):
@@ -13,17 +19,18 @@ class Role(db.Model):
     def __repr__(self):
         return '<Role %r>' % self.name
 
-class User(db.Model):
+class User(UserMixin,db.Model):
     __tablename__ = 'User'
     id = db.Column(db.Integer,primary_key=True)
-    name = db.Column(db.String(50),unique=True)
+    email = db.Column(db.String(64),unique=True,index=True)
+    name = db.Column(db.String(50),unique=True,index=True)
 
     #one2many-relations:many,ForeignKey与__tablename__对应
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
 
     password_hash = db.Column(db.String(128))
 
-    
+    #password_hash列是根据password属性生成的
     @property
     def password(self):
         raise Attribute('password is not a readable attribute!')
