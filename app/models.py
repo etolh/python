@@ -23,6 +23,7 @@ class User(db.Model):
 
     password_hash = db.Column(db.String(128))
 
+    
     @property
     def password(self):
         raise Attribute('password is not a readable attribute!')
