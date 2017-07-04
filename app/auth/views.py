@@ -2,7 +2,7 @@ from flask import render_template, redirect, request, url_for, flash
 from flask.ext.login import login_user, logout_user, login_required
 from . import auth  #引入蓝本
 from ..models import User
-from .forms import LoginForm, RegisterForm
+from .forms import LoginForm, RegisterForm, UpdatePsdForm
 from .. import db
 from flask.ext.moment import Moment  #本地化时间
 from datetime import datetime
@@ -51,6 +51,27 @@ def register():
 
     return render_template('auth/register.html',form=form)
 
+@auth.route('/setting',methods=['GET','POST'])
+def setting():
+    #修改密码
+    form = UpdatePsdForm()
+
+    if form.validate_on_submit():
+        oldpassword = form.oldpassword.data
+        newpassword = form.password2.data
+
+        #确认密码为当前用户的密码
+        if current_user.verify_password(oldpassword):
+            current_user.password = newpassword
+            db.session.add(current_user)
+            db.session.commit()
+            flash('You have change your password.')
+            return redirect(url_for('auth.login'))
+
+        #密码错误
+        flash('Invalid name or password')
+
+    return render_template('auth/setting.html',form=form)
 
 @auth.route('/confirm/<token>')
 @login_required
@@ -91,3 +112,4 @@ def resend_confirmation():
     send_mail(current_user.email, 'Confirm Your Account.','auth/email/confirm',user=current_user,token=token)
     flash('A new confirmation email has been sent to you by email.')
     return redirect(url_for('main.index'))
+
