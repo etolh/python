@@ -37,5 +37,19 @@ class UpdatePsdForm(Form):
     oldpassword = PasswordField('OldPassword',validators=[Required()])
     password = PasswordField('New password', validators=[
         Required(), EqualTo('password2', message='Passwords must match')])
-    password2 = PasswordField('NewPassword',validators=[Required()])
+    password2 = PasswordField('Confirm password',validators=[Required()])
     submit = SubmitField('Change')
+
+
+class UserEmailForm(Form):
+    #重设密码s1:输入用户
+    email = StringField('Email', validators=[Required(),Length(1,64),Email()])
+    submit = SubmitField('next step')
+
+class ResetPasswordForm(Form):
+    #重设密码：输入用户名，新密码
+    email = StringField('Email', validators=[Required(),Length(1,64),Email()])
+    password = PasswordField('New password', validators=[
+        Required(), EqualTo('password2', message='Passwords must match')])
+    password2 = PasswordField('Confirm password',validators=[Required()])
+    submit = SubmitField('Reset')

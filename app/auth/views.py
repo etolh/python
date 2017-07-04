@@ -2,7 +2,7 @@ from flask import render_template, redirect, request, url_for, flash
 from flask.ext.login import login_user, logout_user, login_required
 from . import auth  #引入蓝本
 from ..models import User
-from .forms import LoginForm, RegisterForm, UpdatePsdForm
+from .forms import LoginForm, RegisterForm, UpdatePsdForm, UserEmailForm, ResetPasswordForm
 from .. import db
 from flask.ext.moment import Moment  #本地化时间
 from datetime import datetime
@@ -72,6 +72,51 @@ def setting():
         flash('Invalid name or password')
 
     return render_template('auth/setting.html',form=form)
+
+@auth.route('/resetrequest',methods=['GET','POST'])
+def resetrequest():
+    #忘记密码,提供一个email的表格，接收表格发送重设密码邮件
+    form = UserEmailForm()
+
+    if form.validate_on_submit():
+        email = form.email.data
+        user = User.query.filter_by(email=email).first()
+
+        if user is not None:
+            #发送带有token令牌的邮件
+            token = user.generate_confirmation_token()
+            send_mail(email, 'Reset your Password!','auth/email/reset_password',user=user,token=token)
+            flash('A Reset email has been sent to your email.\
+            you can login.')
+        else:
+            flash('Invalid email')
+        
+        return redirect(url_for('auth.login'))
+
+    return render_template('auth/resetpassword.html',form=form)
+
+@auth.route('/password_reset/<token>',methods=['GET','POST'])
+def password_reset(token):
+    #邮件url重设密码
+    form = ResetPasswordForm()
+    
+    if form.validate_on_submit():
+        email = form.email.data
+        user = User.query.filter_by(email=email).first()
+
+        if user is not None and user.confirm(token):
+            #确认为输入的用户
+            newpassword = form.password.data
+            user.password = newpassword
+            db.session.add(user)
+            db.session.commit()
+
+            flash('You have reseted your password.')
+            return redirect(url_for('auth.login'))
+        
+        flash('resetpassword')
+
+    return render_template('auth/resetpassword.html',form=form)
 
 @auth.route('/confirm/<token>')
 @login_required
