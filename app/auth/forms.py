@@ -53,3 +53,15 @@ class ResetPasswordForm(Form):
         Required(), EqualTo('password2', message='Passwords must match')])
     password2 = PasswordField('Confirm password',validators=[Required()])
     submit = SubmitField('Reset')
+
+class Change_Email_Req(Form):
+    #修改邮箱
+    email = StringField('NewEmail', validators=[Required(),Length(1,64),Email()])
+    password = PasswordField('Password',validators=[Required()])
+    submit = SubmitField('next step')
+
+    #验证函数：email未用过，即未出现在数据库
+    def validate_email(self, field):
+        if User.query.filter_by(email=field.data).first():
+            raise ValidationError('Email already registered.')
+
