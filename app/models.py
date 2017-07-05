@@ -4,6 +4,7 @@ from flask.ext.login import UserMixin, AnonymousUserMixin
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask import current_app
+from datetime import datetime
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -67,10 +68,20 @@ class User(UserMixin,db.Model):
     
     id = db.Column(db.Integer,primary_key=True)
     email = db.Column(db.String(64),unique=True,index=True)
-    name = db.Column(db.String(50),unique=True,index=True)
+    name = db.Column(db.String(64),unique=True,index=True)
+    realname = db.Column(db.String(64))
+    location = db.Column(db.String(64))
+    about_me = db.Column(db.Text())
+    member_since = db.Column(db.DateTime(),default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime(), default=datetime.utcnow)
     #one2many-relations:many,ForeignKey与__tablename__对应
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     password_hash = db.Column(db.String(128))
+
+    #刷新用户访问时间
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
     #构造函数中赋予用户角色
     def __init__(self,**kw):

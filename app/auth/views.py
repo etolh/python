@@ -69,12 +69,14 @@ def confirm(token):
 @auth.before_app_request
 def before_request():
     #用户在线但处于未激活状态
-    if current_user.is_authenticated \
-            and not current_user.confirmed \
-            and request.endpoint \
-            and request.endpoint[:5] != 'auth.' \
-            and request.endpoint != 'static':
-        return redirect(url_for('auth.unconfirmed'))
+    if current_user.is_authenticated:
+        #更新最后登录时间
+        current_user.ping()
+        if not current_user.confirmed \
+                and request.endpoint \
+                and request.endpoint[:5] != 'auth.' \
+                and request.endpoint != 'static':
+            return redirect(url_for('auth.unconfirmed'))
 
 @auth.route('/unconfirmed')
 def unconfirmed():
