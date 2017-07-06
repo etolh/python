@@ -1,9 +1,10 @@
+import hashlib
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask.ext.login import UserMixin, AnonymousUserMixin
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app, request
 from datetime import datetime
 
 @login_manager.user_loader
@@ -79,11 +80,8 @@ class User(UserMixin,db.Model):
     password_hash = db.Column(db.String(128))
     #用户激活状态
     confirmed = db.Column(db.Boolean,default=False)
-    
-    #刷新用户访问时间
-    def ping(self):
-        self.last_seen = datetime.utcnow()
-        db.session.add(self)
+    #使用缓存的md5散列计算生成的gravatar-url
+    avatar_hash = db.Column(db.String(32))
 
     #构造函数中赋予用户角色
     def __init__(self,**kw):
@@ -92,11 +90,35 @@ class User(UserMixin,db.Model):
         if self.role is None:
             if self.email == current_app.config['FLASKY_ADMIN']:
                 #注册邮箱为管理员邮箱,设为管理员角色
-                self.role = Role.query.filter_by(permissions=0xff).first()
+                self.role = Role.query.filter_by(
+                    permissions=0xff).first()
             if self.role is None:
                 #默认为普通角色
-                self.role = Role.query.filter_by(default=True).first()
+                self.role = Role.query.filter_by(
+                    default=True).first()
 
+        if self.email is not None and self.avatar_hash is None:
+            self.avatar_hash = hashlib.md5(
+                self.email.encode('utf-8')).hexdigest()
+
+
+    #生成邮箱对应的图像
+    def gravatar(self, size=100, default='identicon', rating='g'):
+        if request.is_secure:
+            url = 'https://secure.gravatar.com/avatar'
+        else:
+            url = 'http://www.gravatar.com/avatar'
+        #若已保存，则使用保存的avatar_hash
+        hash = self.avatar_hash or hashlib.md5(
+            self.email.encode('utf-8')).hexdigest()
+        return '{url}/{hash}?s={size}&d={default}&r={rating}'.format(url=url, hash=hash, size=size, default=default, rating=rating)
+
+
+
+    #刷新用户访问时间
+    def ping(self):
+        self.last_seen = datetime.utcnow()
+        db.session.add(self)
 
     #验证用户是否具有指定权限
     def can(self,permissions):
@@ -188,6 +210,11 @@ class User(UserMixin,db.Model):
 
         #验证成功，更新用户
         self.email = newemail
+        
+        #根据email生成gravatar的url
+        self.avatar_hash = hashlib.md5(
+            self.email.encode('utf-8')).hexdigest()
+
         db.session.add(self)
         # db.session.commit()
         return True
