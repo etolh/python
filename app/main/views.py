@@ -2,7 +2,7 @@ from flask import render_template, redirect, url_for, abort, flash
 from . import main
 from flask.ext.moment import Moment  #本地化时间
 from datetime import datetime
-from ..models import User
+from ..models import User, Role
 from .forms import EditProfileForm, EditProfileAdminForm
 from flask_login import login_required, current_user
 from .. import db
@@ -45,7 +45,8 @@ def edit_profile():
 @main.route('/edit_profile/<int:id>',methods=['GET','POST'])
 @login_required
 @admin_required
-def edit_profile(id):
+def edit_profile_admin(id):
+    #由视图函数传入的id查找用户
     user = User.query.get_or_404(id)
     form = EditProfileAdminForm(user=user)
     
@@ -53,20 +54,22 @@ def edit_profile(id):
         #更新用户资料
         user.email = form.email.data
         user.name = form.name.data
-        user.cofirmed = form.cofirmed.data
-        user.role = form.role.data
+        user.confirmed = form.confirmed.data
+        #role_id属性被赋值给form.role.data，利用form.role.data从数据库加载角色
+        user.role = Role.query.get(form.role.data)
         user.realname = form.realname.data
         user.location = form.location.data
         user.about_me = form.about_me.data
-        db.session.add(current_user)
+        db.session.add(user)
         flash('Your profile has been updated.')
         return redirect(url_for('main.user',username=user.name))
 
     form.email.data = user.email
     form.name.data = user.name
-    form.cofirmed.data = user.cofirmed
-    form.role.data = user.role
-    form.realname.data = current_user.realname
-    form.location.data = current_user.about_me
-    form.about_me.data = current_user.about_me
+    form.confirmed.data = user.confirmed
+    #赋值时role_id赋给form中的role属性
+    form.role.data = user.role_id
+    form.realname.data = user.realname
+    form.location.data = user.location
+    form.about_me.data = user.about_me
     return render_template('edit_profile.html',form=form,user=user)

@@ -1,6 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, SelectField, BooleanField
 from wtforms.validators import Required, Length, Email, Regexp
+from wtforms import ValidationError
+from ..models import Role, User
 
 #定义表单类
 class NameForm(FlaskForm):
@@ -23,7 +25,7 @@ class EditProfileAdminForm(FlaskForm):
         Regexp('^[A-Za-z][A-Za-z0-9_.]*$', 0,
         'Usernames must have only letters, '
         'numbers, dots or underscores')])
-    cofirmed = BooleanField('Confirmed')
+    confirmed = BooleanField('Confirmed')
     role = SelectField('Role', coerce=int)
 
     #除基本编辑表单外，还能编辑用户的邮箱、用户名、激活状态和角色
@@ -37,13 +39,13 @@ class EditProfileAdminForm(FlaskForm):
         self.role.choices = [(role.id,role.name) for role in Role.query.order_by(Role.name).all()]
         self.user = user
 
-    #验证邮箱、用户名
-    def validate_email(self,field):
+    #验证邮箱、用户名，若其已经发生变化且在数据库已存在，抛出异常
+    def validate_email(self, field):
         if field.data != self.user.email and \
                 User.query.filter_by(email=field.data).first():
-            raise ValidationError('Email already in use.')
+            raise ValidationError('Email already registered.')
 
-    def validate_username(self,field):
-        if field.data != self.user.Username and \
+    def validate_username(self, field):
+        if field.data != self.user.name and \
                 User.query.filter_by(name=field.data).first():
             raise ValidationError('Username already in use.')

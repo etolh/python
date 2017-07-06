@@ -77,7 +77,9 @@ class User(UserMixin,db.Model):
     #one2many-relations:many,ForeignKey与__tablename__对应
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
     password_hash = db.Column(db.String(128))
-
+    #用户激活状态
+    confirmed = db.Column(db.Boolean,default=False)
+    
     #刷新用户访问时间
     def ping(self):
         self.last_seen = datetime.utcnow()
@@ -119,9 +121,6 @@ class User(UserMixin,db.Model):
 
     def verify_password(self,password):
         return check_password_hash(self.password_hash, password)
-
-    #用户激活状态
-    confirmed = db.Column(db.Boolean,default=False)
 
     #生成激活令牌
     def generate_confirmation_token(self,expiration=3600):
