@@ -30,7 +30,7 @@ class Role(db.Model):
     default = db.Column(db.Boolean, default=False,index=True)
     # 位标志，表示角色能进行的操作
     permissions = db.Column(db.Integer)
-    #one2many-relations:one,backref与__tablename__对应,lazy='dynamic'禁止自动
+    #one2many-relations:one,backref与外键名称对应,lazy='dynamic'禁止自动
     users = db.relationship('User', backref='role',lazy='dynamic')
 
     #自动将角色加入数据库
@@ -63,6 +63,18 @@ class Role(db.Model):
     def __repr__(self):
         return '<Role %r>' % self.name
 
+class Post(db.Model):
+    #文章--表
+
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer,primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    #多对一外键
+    author_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+
+
+
 class User(UserMixin,db.Model):
     
     __tablename__ = 'User'
@@ -82,6 +94,9 @@ class User(UserMixin,db.Model):
     confirmed = db.Column(db.Boolean,default=False)
     #使用缓存的md5散列计算生成的gravatar-url
     avatar_hash = db.Column(db.String(32))
+    #一对多：一方
+    posts = db.relationship('Post',backref='author',lazy='dynamic')
+
 
     #构造函数中赋予用户角色
     def __init__(self,**kw):
