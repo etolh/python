@@ -33,7 +33,8 @@ def user(username):
     user = User.query.filter_by(name=username).first()
     if user is None:
         abort(404)
-    return render_template('user.html',user=user)
+    posts = user.posts.order_by(Post.timestamp.desc()).all()
+    return render_template('user.html',user=user, posts=posts)
 
 #资料编辑路由
 @main.route('/edit_profile',methods=['GET','POST'])

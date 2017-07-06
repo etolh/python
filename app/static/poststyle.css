@@ -24,10 +24,3 @@ div.post-content {
     margin-left: 48px;
     min-height: 48px;
 }
-.profile-thumbnail {
-    position: absolute;
-}
-.profile-header {
-    min-height: 260px;
-    margin-left: 280px;
-}
