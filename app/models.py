@@ -303,10 +303,10 @@ class User(UserMixin,db.Model):
 
     #获取用户所关注用户的文章Post
     @property
-    def followed_post(self):
+    def followed_posts(self):
         return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
-            .filter(Follow, Follow.follower_id==self.identicon)
-    
+            .filter(Follow.follower_id == self.id)
+
 
 
     def __repr__(self):

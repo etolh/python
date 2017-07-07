@@ -1,5 +1,5 @@
 from flask import render_template, redirect, url_for, abort, flash, request,\
-    current_app
+    current_app, make_response
 from . import main
 from flask.ext.moment import Moment  #本地化时间
 from datetime import datetime
@@ -26,12 +26,21 @@ def index():
 
     #分页：page表示当前显示的页数
     page = request.args.get('page', 1, type=int)
-    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+    #获取所关注用户的Post --query
+    show_followed = False
+    if current_user.is_authenticated:
+        show_followed = bool(request.cookies.get('show_followed', ''))
+    #show_followed决定是显示所有文章，还是显示所关注用户的文章
+    if show_followed:
+        query = current_user.followed_posts
+    else:
+        query = Post.query
+
+    pagination = query.order_by(Post.timestamp.desc()).paginate(
         page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],error_out=False)
     posts = pagination.items
     return render_template('index.html', form=form, posts=posts,
                            pagination=pagination)
-
 
 
 #用户资料页面路由
@@ -205,3 +214,19 @@ def followed_by(username):
     return render_template('followers.html',user=user, title='Followed by',
             endpoint='.followed_by', pagination=pagination,
             follows=follows)
+
+#决定显示所有还是所关注用户
+@main.route('/all')
+@login_required
+def show_all():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '', max_age=30*24*60*60)
+    return resp
+
+
+@main.route('/followed')
+@login_required
+def show_followed():
+    resp = make_response(redirect(url_for('.index')))
+    resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
+    return resp
