@@ -65,49 +65,19 @@ class Role(db.Model):
     def __repr__(self):
         return '<Role %r>' % self.name
 
-class Post(db.Model):
-    #文章--表
+#多对多关系形成的中间表
+class Follow(db.Model):
+    __tablename__ = 'follows'
 
-    __tablename__ = 'posts'
-    id = db.Column(db.Integer,primary_key=True)
-    body = db.Column(db.Text)
-    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    #多对一外键
-    author_id = db.Column(db.Integer, db.ForeignKey('User.id'))
-    #保存生成的html
-    body_html = db.Column(db.Text)
+    #关注者id
+    follower_id = db.Column(db.Integer, db.ForeignKey('User.id'),
+            primary_key=True)
+    #被关注者id
+    followed_id = db.Column(db.Integer, db.ForeignKey('User.id'),
+            primary_key=True)
 
-    #当Post中的body发送变化，将body字段的文本经过markdown生成html再保存在数据库中
-    @staticmethod
-    def on_changed_body(target, value, oldvalue, initiator):
-        #允许的html标签
-        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
-                    'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
-                    'h1', 'h2', 'h3', 'p']
-        #生成的html保存到body_html
-        target.body_html = bleach.linkify(bleach.clean(
-            markdown(value, output_format='html'), 
-            tags=allowed_tags, strip=True))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-
-    #生成虚拟列表
-    @staticmethod
-    def generate_fake(count=100):
-        from random import seed, randint
-        import forgery_py
-
-        seed()
-        user_count = User.query.count()
-        for i in range(count):
-            u = User.query.offset(randint(0, user_count - 1)).first()
-            p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1, 3)),
-                    timestamp=forgery_py.date.date(True),
-                    author=u)
-            db.session.add(p)
-            db.session.commit()
-    
-#将Post的on_changed_body函数绑定在Post的body字段上，当body发生变化时，自动调用函数
-db.event.listen(Post.body, 'set', Post.on_changed_body)
 
 class User(UserMixin,db.Model):
     
@@ -130,6 +100,21 @@ class User(UserMixin,db.Model):
     avatar_hash = db.Column(db.String(32))
     #一对多：一方
     posts = db.relationship('Post',backref='author',lazy='dynamic')
+
+    #关注者的一对多：一方
+    followed = db.relationship('Follow',
+        foreign_keys=[Follow.follower_id],
+        #回引Follow模型
+        backref=db.backref('follower',lazy='joined'),
+        lazy='dynamic',
+        cascade='all, delete-orphan')
+
+    #被关注者的一对多关系：
+    followers = db.relationship('Follow',
+        foreign_keys=[Follow.followed_id],
+        backref=db.backref('followed',lazy='joined'),
+        lazy='dynamic',
+        cascade='all, delete-orphan')
 
 
     #构造函数中赋予用户角色
@@ -290,6 +275,34 @@ class User(UserMixin,db.Model):
         # db.session.commit()
         return True
 
+    #关注关系的辅助函数
+    #关注user
+    def follow(self, user):
+        if not self.is_following(user):
+            #未关注user，则self对user关注，设置中间对象，加入数据库
+            f = Follow(follower=self, followed=user)
+            db.session.add(f)
+
+    #取消关注user
+    def unfollow(self, user):
+        f = self.followed.filter_by(followed_id=user.id).first()
+        if f:
+            db.session.delete(f)
+
+    #是否为关注状态:self是否关注user
+    def is_following(self, user):
+        #查找self关注的对象是否有user
+        return self.followed.filter_by(
+            followed_id=user.id).first() is not None
+
+    #self是否被user关注
+    def is_followed_by(self, user):
+        #查找self的关注者中是否有user
+        return self.followers.filter_by(
+            follower_id=user_id).first() is not None
+
+
+
     def __repr__(self):
         return '<User %r>' % self.name
 
@@ -302,4 +315,50 @@ class AnonymousUser(AnonymousUserMixin):
         return False
 
 login_manager.anonymous_user = AnonymousUser
+
+class Post(db.Model):
+    #文章--表
+
+    __tablename__ = 'posts'
+    id = db.Column(db.Integer,primary_key=True)
+    body = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    #多对一外键
+    author_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+    #保存生成的html
+    body_html = db.Column(db.Text)
+
+    #当Post中的body发送变化，将body字段的文本经过markdown生成html再保存在数据库中
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        #允许的html标签
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'blockquote', 'code',
+                    'em', 'i', 'li', 'ol', 'pre', 'strong', 'ul',
+                    'h1', 'h2', 'h3', 'p']
+        #生成的html保存到body_html
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'), 
+            tags=allowed_tags, strip=True))
+
+
+    #生成虚拟列表
+    @staticmethod
+    def generate_fake(count=100):
+        from random import seed, randint
+        import forgery_py
+
+        seed()
+        user_count = User.query.count()
+        for i in range(count):
+            u = User.query.offset(randint(0, user_count - 1)).first()
+            p = Post(body=forgery_py.lorem_ipsum.sentences(randint(1, 3)),
+                    timestamp=forgery_py.date.date(True),
+                    author=u)
+            db.session.add(p)
+            db.session.commit()
+    
+#将Post的on_changed_body函数绑定在Post的body字段上，当body发生变化时，自动调用函数
+db.event.listen(Post.body, 'set', Post.on_changed_body)
+
+
 
