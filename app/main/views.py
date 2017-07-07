@@ -102,9 +102,34 @@ def edit_profile_admin(id):
 
 
 #文章固定连接
-@main.route('/post/<int:id>')
+@main.route('/post/<int:id>',methods=['GET','POST'])
 def post(id):
     #由Post的id得到指定的Post
     post = Post.query.get_or_404(id)
     return render_template('post.html', posts=[post])
 
+
+#用户或管理员编辑文章
+@main.route('/edit/<int:id>',methods=['GET','POST'])
+@login_required
+def edit(id):
+    post = Post.query.get_or_404(id)
+    
+    if current_user != post.author and \
+        not current_user.can(Permission.ADMINISTER):
+        #用户不是当前post用户，或非管理员
+        abort(403)
+
+    form = PostForm()
+
+    if form.validate_on_submit():
+        #修改，提交数据库
+        post.body = form.body.data
+        db.session.add(post)
+        flash('You have updated your post')
+        #返回文章界面
+        return redirect(url_for('.post', id=post.id))
+
+    #未修改，默认为原内容
+    form.body.data = post.body
+    return render_template('edit_post.html', form=form)
