@@ -33,9 +33,9 @@
                 {% endif %}
             {% endif %}
             <!-- 关注查看的用户user的用户数和列表 -->
-            <a href="{{ url_for('.followers', username=user.name) }}">Followers: <span class="badge">{{ user.followers.count() }}</span></a>
+            <a href="{{ url_for('.followers', username=user.name) }}">Followers: <span class="badge">{{ user.followers.count() - 1 }}</span></a>
             <!-- 查看的用户user关注的用户和列表 -->
-            <a href="{{ url_for('.followed_by', username=user.name) }}">Following: <span class="badge">{{ user.followed.count() }}</span></a>
+            <a href="{{ url_for('.followed_by', username=user.name) }}">Following: <span class="badge">{{ user.followed.count() - 1 }}</span></a>
             <!-- 若查看user是否关注当前登录的用户，若是，显示follow you按钮 -->
             {% if current_user.is_authenticated and user != current_user and user.is_following(current_user) %}
             | <span class="label label-default">Follows you</span>

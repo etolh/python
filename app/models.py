@@ -135,6 +135,9 @@ class User(UserMixin,db.Model):
             self.avatar_hash = hashlib.md5(
                 self.email.encode('utf-8')).hexdigest()
 
+        #自己关注自己，使得能看到自己关注的文章
+        self.follow(self)
+
     #生成虚拟数据
     @staticmethod
     def generate_fake(count=100):
@@ -307,7 +310,15 @@ class User(UserMixin,db.Model):
         return Post.query.join(Follow, Follow.followed_id == Post.author_id)\
             .filter(Follow.follower_id == self.id)
 
-
+    #对前面未关注自己的用户后续添加关注自己
+    @staticmethod
+    def add_self_follows():
+        for user in User.query.all():
+            if not user.is_following(user):
+                #对未关注自己的用户后续添加
+                user.follow(user)
+                db.session.add(user)
+                db.session.commit()
 
     def __repr__(self):
         return '<User %r>' % self.name
