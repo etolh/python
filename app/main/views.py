@@ -1,4 +1,5 @@
-from flask import render_template, redirect, url_for, abort, flash
+from flask import render_template, redirect, url_for, abort, flash, request,\
+    current_app
 from . import main
 from flask.ext.moment import Moment  #本地化时间
 from datetime import datetime
@@ -22,8 +23,13 @@ def index():
 
         return redirect(url_for('.index'))
 
-    posts = Post.query.order_by(Post.timestamp.desc()).all()
-    return render_template('index.html',form=form, posts=posts)
+    #分页：page表示当前显示的页数
+    page = request.args.get('page', 1, type=int)
+    pagination = Post.query.order_by(Post.timestamp.desc()).paginate(
+        page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],error_out=False)
+    posts = pagination.items
+    return render_template('index.html', form=form, posts=posts,
+                           pagination=pagination)
 
 
 
@@ -33,8 +39,14 @@ def user(username):
     user = User.query.filter_by(name=username).first()
     if user is None:
         abort(404)
-    posts = user.posts.order_by(Post.timestamp.desc()).all()
-    return render_template('user.html',user=user, posts=posts)
+
+    #分页：page表示当前显示的页数
+    page = request.args.get('page', 1, type=int)
+    pagination = user.posts.order_by(Post.timestamp.desc()).paginate(
+            page=1, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],error_out=False)
+    posts = pagination.items
+    return render_template('user.html',user=user, posts=posts,
+                    pagination=pagination)
 
 #资料编辑路由
 @main.route('/edit_profile',methods=['GET','POST'])

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-
+{% import "_macros.html" as macros %}
 {% block title %} Flask -- {{ user.name }} {% endblock %}
 
 {% block page_content %} 
@@ -33,4 +33,8 @@
 </div>
 <h3>Posts by {{ user.name }}</h3>
 {% include '_posts.html' %}
+
+<div class="pagination">
+    {{ macros.pagination_widget(pagination, '.index') }}
+</div>
 {% endblock %}
