@@ -39,6 +39,10 @@ div.post-footer {
                 <a href="{{ url_for('.post', id=post.id) }}">
                     <span class="label label-default">Permalink</span>
                 </a>
+                <!-- 文章评论按钮 -->
+                <a href="{{ url_for('.post', id=post.id) }}#comments">
+                    <span class="label label-primary"> {{ post.comments.count() }}Comments </span>
+                </a>
             </div>
         </div>
     </li>

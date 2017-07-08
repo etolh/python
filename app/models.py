@@ -78,6 +78,34 @@ class Follow(db.Model):
 
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
+#评论
+class Comment(db.Model):
+
+    __tablename__ = 'comments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    body = db.Column(db.Text)
+    body_html = db.Column(db.Text)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    #协管员通过disabled查处不当评论
+    disabled = db.Column(db.Boolean)
+    #Comments与User的多对一关系
+    author_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+    #Comments与Post的多对一关系
+    post_id = db.Column(db.Integer, db.ForeignKey('posts.id'))
+
+    #当Post中的body发送变化，将body字段的文本经过markdown生成html再保存在数据库中
+    @staticmethod
+    def on_changed_body(target, value, oldvalue, initiator):
+        #允许的html标签
+        allowed_tags = ['a', 'abbr', 'acronym', 'b', 'code',
+                    'em', 'i', 'strong']
+        #生成的html保存到body_html
+        target.body_html = bleach.linkify(bleach.clean(
+            markdown(value, output_format='html'), 
+            tags=allowed_tags, strip=True))
+
+db.event.listen(Comment.body, 'set', Comment.on_changed_body)
 
 class User(UserMixin,db.Model):
     
@@ -115,6 +143,9 @@ class User(UserMixin,db.Model):
         backref=db.backref('followed',lazy='joined'),
         lazy='dynamic',
         cascade='all, delete-orphan')
+
+    #User与Comment的一对多关系, backref表示所关联的对方的外键
+    comments = db.relationship('Comment', backref='author', lazy='dynamic')
 
 
     #构造函数中赋予用户角色
@@ -344,6 +375,9 @@ class Post(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('User.id'))
     #保存生成的html
     body_html = db.Column(db.Text)
+
+    #Post与Comments的一对多关系
+    comments = db.relationship('Comment', backref='post', lazy='dynamic')
 
     #当Post中的body发送变化，将body字段的文本经过markdown生成html再保存在数据库中
     @staticmethod

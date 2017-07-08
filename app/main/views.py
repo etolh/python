@@ -3,8 +3,8 @@ from flask import render_template, redirect, url_for, abort, flash, request,\
 from . import main
 from flask.ext.moment import Moment  #本地化时间
 from datetime import datetime
-from ..models import User, Role, Post
-from .forms import EditProfileForm, EditProfileAdminForm, PostForm
+from ..models import User, Role, Post, Comment
+from .forms import EditProfileForm, EditProfileAdminForm, PostForm, CommentForm
 from flask_login import login_required, current_user
 from .. import db
 from ..decorators import admin_required, permission_required
@@ -53,7 +53,7 @@ def user(username):
     #分页：page表示当前显示的页数
     page = request.args.get('page', 1, type=int)
     pagination = user.posts.order_by(Post.timestamp.desc()).paginate(
-            page=1, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],error_out=False)
+            page, per_page=current_app.config['FLASKY_POSTS_PER_PAGE'],error_out=False)
     posts = pagination.items
     return render_template('user.html',user=user, posts=posts,
                     pagination=pagination)
@@ -111,12 +111,38 @@ def edit_profile_admin(id):
     return render_template('edit_profile.html',form=form,user=user)
 
 
-#文章固定连接
+#文章固定连接 13:在文章页面增加评论显示
 @main.route('/post/<int:id>',methods=['GET','POST'])
 def post(id):
     #由Post的id得到指定的Post
     post = Post.query.get_or_404(id)
-    return render_template('post.html', posts=[post])
+    #评论表单
+    form = CommentForm()
+
+    if form.validate_on_submit():
+        #评论表单提交，创建评论提交到数据库,current_user为context代理对象，通过_get_current_object()获取真正对象
+        comment = Comment(body=form.body.data, post=post, 
+            author=current_user._get_current_object())
+        db.session.add(comment)
+        db.session.commit()
+        flash('Your comment has been published.')
+        #page设为-1，表示为最后一页，能显示刚提交的评论
+        return redirect(url_for('.post', id=post.id, page=-1))
+
+    #分页显示评论
+    page = request.args.get('page', 1, type=int)
+
+    if page == -1:
+        #设为最后一页
+        page = (post.comments.count() - 1) / current_app.\
+            config['FLASKY_COMMENTS_PER_PAGE'] + 1
+
+    pagination = post.comments.order_by(Comment.timestamp.desc()).paginate(
+            page=page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],error_out=False)
+    comments = pagination.items
+
+    return render_template('post.html', posts=[post], 
+        form=form, comments=comments, pagination=pagination)
 
 
 #用户或管理员编辑文章
