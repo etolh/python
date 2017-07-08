@@ -25,11 +25,17 @@
         <div class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 <li><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li><a href="{{ url_for('main.user', username=current_user.name) }}">Profile</a></li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
+                <!-- 权限用户管理评论 -->
+                {% if current_user.can(Permission.MODERATE_COMMENTS) %}
+                <li><a href="{{ url_for('main.moderate') }}">Moderate Comments</a></li>
+                {% endif %}
+                
+                <!-- 登录登出设置 -->
                 {% if current_user.is_authenticated %}
                 <li><a href="{{ url_for('auth.logout') }}">Log Out</a></li>
-                <li><a href="{{ url_for('main.user', username=current_user.name) }}">Profile</a></li>
                 <li class="dropdown">
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">Setting <b class="caret"></b></a>
                     <ul class="dropdown-menu">

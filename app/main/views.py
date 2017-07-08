@@ -256,3 +256,41 @@ def show_followed():
     resp = make_response(redirect(url_for('.index')))
     resp.set_cookie('show_followed', '1', max_age=30*24*60*60)
     return resp
+
+#管理评论的路由
+@main.route('/moderate')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate():
+    #从数据库的评论库Comment读取一页评论传入模板进行渲染
+    page = request.args.get('page', 1, type=int)
+    pagination = Comment.query.order_by(Comment.timestamp.desc()).paginate(
+            page=page, per_page=current_app.config['FLASKY_COMMENTS_PER_PAGE'],error_out=False)
+    comments = pagination.items
+
+    return render_template('moderate.html', 
+            comments=comments, pagination=pagination)
+
+
+#切换评论状态的按钮
+#设非禁止，即disabled=false
+@main.route('/moderate/enable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_enable(id):
+    #设置评论状态，并提及数据库
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = False
+    db.session.add(comment)
+    return redirect(url_for('.moderate', page=request.args.get('page', 1, type=int)))
+
+#设禁止，即disabled=True
+@main.route('/moderate/disable/<int:id>')
+@login_required
+@permission_required(Permission.MODERATE_COMMENTS)
+def moderate_disable(id):
+    #设置评论状态，并提及数据库
+    comment = Comment.query.get_or_404(id)
+    comment.disabled = True
+    db.session.add(comment)
+    return redirect(url_for('.moderate', page=request.args.get('page', 1, type=int)))

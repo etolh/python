@@ -13,12 +13,31 @@
             <div class="comment-date">{{ moment(comment.timestamp).fromNow() }}</div>
             <div class="comment-author"><a href="{{ url_for('.user', username=comment.author.name) }}">{{ comment.author.name }}</a></div>
             <div class="comment-body">
-                {% if comment.body_html %}
-                    {{ comment.body_html | safe }}
-                {% else %}
-                    {{ comment.body }}
+                <!-- 评论显示区：对于普通用户不显示禁止的评论，协管员和管理员显示所有信息，且显示切换状态按钮 -->
+                <!-- 普通用户 -->
+                {% if comment.disabled %}
+                <p></p><i>This comment has been disabled by a moderator.</i></p>
+                {% endif %}
+                <!-- 权限用户或非禁止信息 -->
+                {% if moderate or not comment.disabled %}
+                    {% if comment.body_html %}
+                        {{ comment.body_html | safe }}
+                    {% else %}
+                        {{ comment.body }}
+                    {% endif %}
                 {% endif %}
             </div>
+            {% if moderate %}
+                <br>
+                <!-- 设置按钮 -->
+                {% if comment.disabled %}
+                <a class="btn btn-default btn-xs" href="{{ url_for('.moderate_enable',
+                id=comment.id, page=page) }}">Enable</a>
+                {% else %}
+                <a class="btn btn-danger btn-xs" href="{{ url_for('.moderate_disable',
+                id=comment.id, page=page) }}">Disable</a>
+                {% endif %}
+            {% endif %}
         </div>
     </li>
     {% endfor %}
