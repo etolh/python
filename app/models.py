@@ -105,6 +105,29 @@ class Comment(db.Model):
             markdown(value, output_format='html'), 
             tags=allowed_tags, strip=True))
 
+    #comment对象-->json
+    def to_json(self):
+        json_comment = {
+            'url':url_for('api.get_comment', id=self.id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            #资源以url形式表现
+            'author': url_for('api.get_user', id=self.author_id, _external=True),
+            'post': url_for('api.get_post', id=self.post_id, _external=True)
+        }
+        return json_comment
+
+    #json-->comment对象
+    @staticmethod
+    def from_json(json_comment):
+        body = json_comment.get('body')
+        if body is None or body == '':
+            raise ValidationError('comment does not have a body')
+        return Comment(body=body)
+
+
+
 db.event.listen(Comment.body, 'set', Comment.on_changed_body)
 
 class User(UserMixin,db.Model):
@@ -351,8 +374,40 @@ class User(UserMixin,db.Model):
                 db.session.add(user)
                 db.session.commit()
 
+
+    #生成api使用的令牌
+    def generate_auth_token(self, expiration=3600):
+        s = Serializer(current_app.config['SECRET_KEY'],
+                       expires_in=expiration)
+        return s.dumps({'id': self.id}).decode('ascii')
+
+    #User对象转换为json格式
+    def to_json(self):
+        json_user = {
+            'url': url_for('api.get_user', id=self.id, _external=True),
+            'username': self.name,
+            'member_since': self.member_since,
+            'last_seen': self.last_seen,
+            'posts': url_for('api.get_user_posts', id=self.id, _external=True),
+            'followed_posts': url_for('api.get_user_followed_posts',
+                                      id=self.id, _external=True),
+            'post_count': self.posts.count()
+        }
+        return json_user
+
+
     def __repr__(self):
         return '<User %r>' % self.name
+
+    #验证api的令牌
+    @staticmethod
+    def verify_auth_token(token):
+        s = Serializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token)
+        except:
+            return None
+        return User.query.get(data['id'])
 
 #验证匿名用户（未登录）
 class AnonymousUser(AnonymousUserMixin):
@@ -407,7 +462,31 @@ class Post(db.Model):
                     author=u)
             db.session.add(p)
             db.session.commit()
-    
+
+    #Post转换成json格式
+    def to_json(self):
+        json_post = {
+            'url': url_for('api.get_post', id=self.id, _external=True),
+            'body': self.body,
+            'body_html': self.body_html,
+            'timestamp': self.timestamp,
+            #调用api蓝本的视图函数
+            'author': url_for('api.get_user', id=self.author_id,
+                              _external=True),
+            'comments': url_for('api.get_post_comments', id=self.id,
+                                _external=True),
+            'comment_count': self.comments.count()
+        }
+        return json_post
+        
+        #从json转换为Post格式
+        @staticmethod
+        def from_json(json_post):
+            body = json_post.get('body')
+            if body is None or body == '':
+                raise ValidationError('post does not have a body')
+            return Post(body=body)
+
 #将Post的on_changed_body函数绑定在Post的body字段上，当body发生变化时，自动调用函数
 db.event.listen(Post.body, 'set', Post.on_changed_body)
 
